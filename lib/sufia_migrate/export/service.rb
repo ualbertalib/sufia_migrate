@@ -50,9 +50,9 @@ module Export
       # Fetches all the Fedora 4 descendant URIs for a given URI.
       # Stolen from: https://github.com/projecthydra/active_fedora/blob/master/lib/active_fedora/indexing.rb#L72-L79
       def descendant_uris(uri = nil)
-        puts ActiveFedora.fedora.inspect
         resource = Ldp::Resource::RdfSource.new(ActiveFedora.fedora.connection, uri)
-        return [] unless rdf_source?(resource)
+        # hydranorth using Ldp v0.4.0
+        return [] unless Ldp::Response.rdf_source?(resource.head)
 
         children = resource.graph.query(predicate: ::RDF::Vocab::LDP.contains).map { |descendant| descendant.object.to_s }
         descendants = [uri]

@@ -20,7 +20,7 @@ module Export
       @id = gf.id
       @label = gf.label
       @depositor = gf.depositor
-      @arkivo_checksum = gf.arkivo_checksum
+      #@arkivo_checksum = gf.arkivo_checksum
       @relative_path = gf.relative_path
       @import_url = gf.import_url
       @resource_type = gf.resource_type
@@ -28,7 +28,7 @@ module Export
       @creator = gf.creator
       @contributor = gf.contributor
       @description = gf.contributor
-      @tag = gf.tag
+      #@tag = gf.tag
       @rights = gf.rights
       @publisher = gf.publisher
       @date_created = gf.date_created
@@ -37,9 +37,9 @@ module Export
       @subject = gf.subject
       @language = gf.language
       @identifier = gf.identifier
-      @based_near = gf.based_near
+      #@based_near = gf.based_near
       @related_url = gf.related_url
-      @bibliographic_citation = gf.bibliographic_citation
+      #@bibliographic_citation = gf.bibliographic_citation
       @source = gf.source
       @batch_id = gf.batch.id if gf.batch
       @visibility = gf.visibility
