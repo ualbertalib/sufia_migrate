@@ -26,6 +26,8 @@ load "#{spec.gem_dir}/lib/tasks/export.rake"
 load "#{spec.gem_dir}/lib/tasks/import.rake"
 ```
 
+With the import, you'll need to create and configure ```config/sufia_migrate.yml``` to contain the ```user```, ```password```, and ```uri_root``` of the Sufia6 Fedora instance.
+
 ## Usage
 
 To export Generic Files the idea is to run two rake tasks. One to export the IDs of all the files to export and another to actually export them to JSON files (one per Generic File). I suspect we could combine these tasks but for a final release.

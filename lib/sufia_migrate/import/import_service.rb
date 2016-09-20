@@ -24,8 +24,7 @@ module Importer
     def self.create(gw_id, gf_perm)
       agent = gf_perm.agent.split("/").last           # e.g. "http://projecthydra.org/ns/auth/person#hjc14"
       type = agent.split("#").first                   # e.g. person or group
-      name = agent.split("#").last                    # e.g. hjc14 or public
-      name += "@psu.edu" if type == "person"
+      name = agent.split("#").last                    # e.g. pgw or public
       access = gf_perm.mode.split("#").last.downcase  # e.g. "http://www.w3.org/ns/auth/acl#Write"
       access = "edit" if access == "write"
       Hydra::AccessControls::Permission.new(id: gw_id, name: name, type: type, access: access)
@@ -73,8 +72,9 @@ module Importer
     end
 
     def import_current_version(gf, fs)
+      return if fs.label.nil?
       # Download the current version to disk...
-      filename_on_disk = "/Users/hjc14/dev/friday25/sufia/.internal_test_app/#{fs.label}"
+      filename_on_disk = "/tmp/#{fs.label}"
       Rails.logger.debug "[IMPORT] Downloading #{filename_on_disk}"
       File.open(filename_on_disk, 'wb') do |file_to_upload|
         source_uri = sufia6_content_open_uri(gf.id)
@@ -84,14 +84,10 @@ module Importer
       # ...upload it...
       File.open(filename_on_disk, 'rb') do |file_to_upload|
         Hydra::Works::UploadFileToFileSet.call(fs, file_to_upload)
+        mime_type = file_to_upload.respond_to?(:content_type) ? file.content_type : nil
+        IngestFileJob.perform_now(fs, filename_on_disk, mime_type, 'pgw@ualberta.ca')
       end
 
-      # ...and characterize it.
-      # TODO: perform_now or perform_later?
-      #       What's the risk of leaving too many files on disk?
-      #       Delete filename_on_disk at the end.
-      CharacterizeJob.perform_now(fs.id, filename_on_disk)
-      CreateDerivativesJob.perform_now(fs.id, filename_on_disk)
     end
 
     def import_old_versions(gf, fs)
@@ -130,9 +126,9 @@ module Importer
       # gw.tag                    = gf.tag
       gw.rights                 = gf.rights
       gw.publisher              = gf.publisher
-      gw.date_created           = gf.date_created
+      gw.date_created           << gf.date_created
       gw.subject                = gf.subject
-      gw.language               = gf.language
+      gw.language               << gf.language
       gw.identifier             = gf.identifier
       gw.based_near             = gf.based_near
       gw.related_url            = gf.related_url
@@ -153,11 +149,7 @@ module Importer
     end
 
     def import(gf)
-      # This is needed because Sufia uses the full e-mail address (xyz@psu.edu) but ScholarSphere
-      # uses only the login name (xyz). Here we make sure we match the Sufia convention. This
-      # won't be needed when we run the import in ScholarSphere directly since the users we'll be
-      # already in the db with the expected format (xyz@psu.edu)
-      depositor = gf.depositor + "@psu.edu"
+      depositor = gf.depositor
 
       # File Set + File
       fs = ImportFileSet.new(settings).from_gf(gf, depositor)
@@ -185,7 +177,7 @@ module Importer
       # already in the db with the expected format (xyz@psu.edu)
 
       # TODO: include depositor in export
-      depositor = "hjc14" + "@psu.edu"
+      depositor = "pgw" + "@ualberta.ca"
 
       collection = Collection.new()
       collection.id = source.id if @settings.preserve_ids
@@ -199,8 +191,11 @@ module Importer
         # import we are going to assume that the GenericFile that was part of the
         # original Sufia 6 Collection has been imported into Sufia 7 as a
         # *GenericWork* with the same ID as the original GenericFile.
-        gw = GenericWork.find(gf_id)
-        collection.members << gw
+        begin
+          gw = GenericWork.find(gf_id)
+          collection.members << gw
+        rescue
+        end
       end
       collection.save
       Rails.logger.debug "[IMPORT] Created collection #{collection.id}"
@@ -245,3 +240,4 @@ module Importer
     end
   end
 end
+
